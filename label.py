@@ -40,46 +40,48 @@ counter = 0
 
 sample_playing = False
 mp3 = None
+if songs:
+    while counter < len(songs):
+        print("---------------------------------")
+        print("song {} of {}".format(counter+1,len(songs)))
+        print("\n{} by {}".format(songs[counter][0],songs[counter][1]))
+        print("\npress 'q' to hear sample of song,\n'a' to go back a song, and 's' to go forward/skip a song\n'z' to halt and save what is labelled\n\nlabel mood by selecting two #s:")
+        print("[1. chill, 2. hype] [3. happy, 4. sad]\n")
+        if counter == 0:
+            print("**for example, input '13' for a chill & happy song\n")
+        label_input = input("enter:")
+        if label_input:
+            if label_input == 'q':
+                if sample_playing and mp3:
+                    mp3.stop()
+                    sample_playing = False
+                    mp3 = False
+                elif not sample_playing:
+                    song = sp.track(songs[counter][2])
+                    if song['preview_url']:
+                        mp3 = vlc.MediaPlayer(song['preview_url'])
+                        mp3.play()
+                        sample_playing = True
+                    else:
+                        print("No preview track to play, sorry :(")
 
-while counter < len(songs):
-    print("---------------------------------")
-    print("song {} of {}".format(counter+1,len(songs)))
-    print("\n{} by {}".format(songs[counter][0],songs[counter][1]))
-    print("\npress 'q' to hear sample of song,\n'a' to go back a song, and 's' to go forward/skip a song\n'z' to halt and save what is labelled\n\nlabel mood by selecting two #s:")
-    print("[1. chill, 2. hype] [3. happy, 4. sad]\n")
-    if counter == 0:
-        print("**for example, input '13' for a chill & happy song\n")
-    label_input = input("enter:")
-    if label_input:
-        if label_input == 'q':
-            if sample_playing and mp3:
-                mp3.stop()
-                sample_playing = False
-                mp3 = False
-            elif not sample_playing:
-                song = sp.track(songs[counter][2])
-                if song['preview_url']:
-                    mp3 = vlc.MediaPlayer(song['preview_url'])
-                    mp3.play()
-                    sample_playing = True
-                else:
-                    print("No preview track to play, sorry :(")
+            elif (label_input[0] in moods.keys() and label_input[1] in moods.keys()) or label_input in ('a','s','z'):
+                if label_input[0] in moods.keys() and label_input[1] in moods.keys():
+                    labelled_data[songs[counter][2]] = {"mood": [moods[label_input[0]],moods[label_input[1]]], "name": songs[counter][0]}
+                    counter += 1
+                if label_input in ('a','s'):
+                    counter = counter + 1 if label_input == 's' else -1
+                if label_input == 'z':
+                    break
+            else:
+                print(label_input)
+                print("invalid input, try again!")
+else:
+    print("everything in playlists file already labelled!")
 
-        elif (label_input[0] in moods.keys() and label_input[1] in moods.keys()) or label_input in ('a','s','z'):
-            if label_input[0] in moods.keys() and label_input[1] in moods.keys():
-                labelled_data[songs[counter][2]] = {"mood": [moods[label_input[0]],moods[label_input[1]]], "name": songs[counter][0]}
-                counter += 1
-            if label_input in ('a','s'):
-                counter = counter + 1 if label_input == 's' else -1
-            if label_input == 'z':
-                break
-        else:
-            print(label_input)
-            print("invalid input, try again!")
-
-
-labelled_data.update(prev_labelled)
-with open('labelled', 'w') as outfile:
-    json.dump(labelled_data, outfile)
-    print('labelled data saved to file called "labelled"')
+if songs:
+    labelled_data.update(prev_labelled)
+    with open('labelled', 'w') as outfile:
+        json.dump(labelled_data, outfile)
+        print('labelled data saved to file called "labelled"')
 
