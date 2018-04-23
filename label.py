@@ -25,20 +25,21 @@ for playlist_uri in playlists:
         current_results = sp.next(current_results)
         all_results.extend(current_results['items'])
 
-# TODO: read playlist file and only label songs that aren't labelled
+prev_labelled = json.load(open('labelled'))
+pl_ids = set(prev_labelled.keys())
 
-songs = [[result['track']['name'],result['track']['artists'][0]['name'],result['track']['id']] for result in all_results]
+initial_songs = [[result['track']['name'],result['track']['artists'][0]['name'],result['track']['id']] for result in all_results]
+songs = []
+for song in initial_songs:
+    if song[2] not in pl_ids:
+        songs.append(song)
+
 labelled_data = {}
 moods = {'1': 'chill', '2': 'hype', '3':'happy', '4':'sad'}
 counter = 0
+
 sample_playing = False
 mp3 = None
-
-def stop_sample(mp3):
-    if mp3:
-        mp3.stop()
-        mp3 = None
-        sample_playing = False
 
 while counter < len(songs):
     print("---------------------------------")
@@ -52,8 +53,10 @@ while counter < len(songs):
     if label_input:
         if label_input == 'q':
             if sample_playing and mp3:
-                stop_sample()
-            else:
+                mp3.stop()
+                sample_playing = False
+                mp3 = False
+            elif not sample_playing:
                 song = sp.track(songs[counter][2])
                 if song['preview_url']:
                     mp3 = vlc.MediaPlayer(song['preview_url'])
@@ -62,9 +65,7 @@ while counter < len(songs):
                 else:
                     print("No preview track to play, sorry :(")
 
-        if (label_input[0] in moods.keys() and label_input[1] in moods.keys()) or label_input in ('a','s','z'):
-            if sample_playing and mp3:
-                stop_sample(mp3)
+        elif (label_input[0] in moods.keys() and label_input[1] in moods.keys()) or label_input in ('a','s','z'):
             if label_input[0] in moods.keys() and label_input[1] in moods.keys():
                 labelled_data[songs[counter][2]] = {"mood": [moods[label_input[0]],moods[label_input[1]]], "name": songs[counter][0]}
                 counter += 1
@@ -77,6 +78,7 @@ while counter < len(songs):
             print("invalid input, try again!")
 
 
+labelled_data.update(prev_labelled)
 with open('labelled', 'w') as outfile:
     json.dump(labelled_data, outfile)
     print('labelled data saved to file called "labelled"')
