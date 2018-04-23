@@ -71,7 +71,7 @@ if songs_exist:
                         labelled_data[song[2]] = {"mood": [moods[label_input[0]],moods[label_input[1]]], "name": song[0]}
                     counter += 1
                 if label_input in ('a','s'):
-                    counter = counter + 1 if label_input == 's' else -1
+                    counter = counter + 1 if label_input == 's' else counter - 1
                 if label_input == 'z':
                     break
             else:

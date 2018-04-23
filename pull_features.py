@@ -1,4 +1,5 @@
 #grabbing all the features for labelled songs
+#TODO script breaks if data exists in features
 
 import spotipy
 from spotipy import util
@@ -32,7 +33,6 @@ if ids:
         batch += 1
 
     data = features.extend(prev_pulled) if prev_pulled else features
-    print(data)
     with open('features', 'w') as outfile:
         json.dump(data, outfile)
         print('done!')
