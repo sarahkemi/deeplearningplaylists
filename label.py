@@ -29,7 +29,7 @@ for playlist_uri in playlists:
 
 songs = [[result['track']['name'],result['track']['artists'][0]['name'],result['track']['id']] for result in all_results]
 labelled_data = {}
-moods = {'1': 'chill', '2': 'gloomy', '3':'elated', '4':'hype'}
+moods = {'1': 'chill', '2': 'hype', '3':'happy', '4':'sad'}
 counter = 0
 sample_playing = False
 mp3 = None
@@ -44,8 +44,10 @@ while counter < len(songs):
     print("---------------------------------")
     print("song {} of {}".format(counter+1,len(songs)))
     print("\n{} by {}".format(songs[counter][0],songs[counter][1]))
-    print("\npress 'q' to hear sample of song,\n'a' to go back a song, and 's' to go forward/skip a song\n'z' to halt and save what is labelled\n\nlabel mood by selecting #:")
-    print("1. chill, 2. gloomy, 3. elated, 4. hype\n")
+    print("\npress 'q' to hear sample of song,\n'a' to go back a song, and 's' to go forward/skip a song\n'z' to halt and save what is labelled\n\nlabel mood by selecting two #s:")
+    print("[1. chill, 2. hype] [3. happy, 4. sad]\n")
+    if counter == 0:
+        print("**for example, input '13' for a chill & happy song\n")
     label_input = input("enter:")
     if label_input:
         if label_input == 'q':
@@ -60,11 +62,11 @@ while counter < len(songs):
                 else:
                     print("No preview track to play, sorry :(")
 
-        if label_input in moods.keys() or label_input in ('a','s','z'):
+        if (label_input[0] in moods.keys() and label_input[1] in moods.keys()) or label_input in ('a','s','z'):
             if sample_playing and mp3:
                 stop_sample(mp3)
-            if label_input in moods.keys():
-                labelled_data[songs[counter][2]] = {"mood": moods[label_input], "name": songs[counter][0]}
+            if label_input[0] in moods.keys() and label_input[1] in moods.keys():
+                labelled_data[songs[counter][2]] = {"mood": [moods[label_input[0]],moods[label_input[1]]], "name": songs[counter][0]}
                 counter += 1
             if label_input in ('a','s'):
                 counter = counter + 1 if label_input == 's' else -1
