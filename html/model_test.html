@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Model Import Test</title>
+	<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@0.10.0"> </script>
+	<script type="text/javascript">
+		const predict = async function(){
+			const moods = ["chill and happy", "chill and sad", "hype and happy", "hype and sad"]
+			const model = await tf.loadModel('/export/model.json')
+			data = [[0.307, 0.643, 0.766, 6, 0.107, 4.788, 0, 0.384, 97.092, 0.463]]
+			const x = tf.tensor2d(data)
+			const prediction = await model.predict(x).data()
+			output = prediction.indexOf(Math.max(...prediction));
+			console.log(moods[output])
+		}
+		predict()
+	</script>
+</head>
+<body>
+
+</body>
+</html>
