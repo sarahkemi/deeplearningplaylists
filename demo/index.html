@@ -15,15 +15,33 @@
            size="30">
       <button>Classify</button>
 </form>
-<div id="classify_result">
-    
+<div id="classify_result" style="max-height:100px;">
 </div>
+</div>
+<div id="creation">
+<form id="creation_form">
+    <label for="artists">I want songs from artists like </label>
+    <input type="text" id="artists" name="artists"
+           placeholder="artist, artist, artist"
+           size="30">
+    <label for="mood">that are </label>
+    <select name="mood">
+      <option value="0">chill and happy</option>
+      <option value="1">chill and sad</option>
+      <option value="2">hype and happy</option>
+      <option value="3">hype and sad</option>
+    </select>
+    <button>Generate</button>
+</form>
+<div id="playlist_embed"style="padding-top:30px;"></div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@0.10.0"> </script>
 <script type="text/javascript" src="spotify-web-api.js"></script>
 <script>
     var token
     var spotify
+    var classifyResult = document.getElementById("classify_result")
+    
     if(window.location.hash){
         token = window.location.hash.split("&")[0].split("=")[1]
         document.getElementById("login").innerHTML = "<p>Logged in!</p>"
@@ -39,49 +57,142 @@
             queryType = query[i].split("=")[0].slice(1)
             queryValue = query[i].split("=")[1].replace(/\+/g, " ")
             if (queryType == "song") {
-                var output = document.getElementById("classify_result")
-                console.log("searching song", queryValue)
+                console.log("searching song: ", queryValue)
                 classifySong(queryValue).then(function(result){
                   if(result == -1){
-                    output.innerHTML = "<p>Can't find song!</p>"
+                    classifyResult.innerHTML = "<p>Can't find song!</p>"
                   }
                   else{
-                    output.innerHTML = "<p>This song is " + labelToText(result) + ".</p>"
+                    classifyResult.innerHTML = "<p>This song is " + labelToText(result) + ".</p>"
                   }
                 })
             }
+            if(queryType == "artists"){
+              queryMood = query[i+1].split("=")[1]
+              artists = queryValue.split("%2C ")
+              console.log("searching for artists: ", artists)
+              console.log("using mood: ", labelToText(queryMood))
+              getSongs(artists, queryMood).then(function(result) {
+                console.log(result)
+                buildPlaylist(result).then(function(result){
+                  document.getElementById("playlist_embed").innerHTML = result
+                })
+              })
+            }
         }
     }
+    function buildPlaylist(songs){
+      return spotify.getMe().then(function(data){
+        var userId = data['id']
+        return spotify.createPlaylist(userId, {"name":"deeplearningmade"})
+          .then(function(data){
+            console.log(data)
+            var playlistId = data['id']
+            return spotify.addTracksToPlaylist(userId,playlistId, songs).then(function(data){
+              console.log(data)
+              return embed = "<iframe src='https://embed.spotify.com/?uri=spotify%3Auser%3A"+ userId +"%3Aplaylist%3A" + playlistId + "' width='300' height='380' frameborder='0' allowtransparency='true'></iframe>"
+            },function(err){
+              console.log(err)
+            })
+          })
+      }, function(err){
+        console.log(err)
+      })
+    }
+    function getSongs(artists, mood) {
+        var artistIds = [];
+        for (var i = 0; i < artists.length; i++) {
+          artistIds.push(getArtistId(artists[i]))
+        }
+        return Promise.all(artistIds)
+         .then((data) => {
+          return spotify.getRecommendations({"seed_artists":data, 'limit':50})
+            .then(function(data){
+              console.log(data)
+              songs = data['tracks']
+              classify = []
+              ids = []
+              for (var i = 0; i < songs.length; i++) {
+                id = songs[i]['id']
+                ids.push(id)
+                classify.push(classifySongId(id))
+              }
+              return Promise.all(classify).then((data) => {
+                // console.log(data)
+                // console.log(ids)
+                // console.log(mood)
+                finalSongs = []
+                for (var i = data.length - 1; i >= 0; i--) {
+                  if(data[i] == mood){
+                    finalSongs.push("spotify:track:" + ids[i])
+                  }
+                }
+                return finalSongs
+              })
+              .catch((e) => {
+                console.log(e)
+              })
+            },function(err){
+              console.error(err)
+            })
+         })
+         .catch((e) => {
+          console.log(e)
+         })
+    }
+
+   function getArtistId(artist){
+      return spotify.searchArtists(artist)
+        .then(function(data){
+          result = data['artists']['items']
+          if(result){
+            id = result[0]['id']
+            return id
+          }
+          else{
+            return -1
+          }
+        }, function(err) {
+          console.error(err)
+        })
+    }
     function classifySong(song) {
-        var output = document.getElementById("classify_result")
-        spotify.searchTracks(song)
+        // let classifyResult = document.getElementById("classify_result")
+        return spotify.searchTracks(song)
           .then(function(data) {
             console.log('Search results:', data)
             results = data['tracks']['items']
             if (results) {
-                songId = results[0]['id']
-                getFeatures([songId]).then(function(features){
-                  modelPredict(features[0]).then(function(classification){
-                    console.log(classification)
-                    console.log(labelToText(classification))
-                    return classification
-                  })   
-                }
-                  )
+              songId = results[0]['id']
+              return getFeatures([songId]).then(function(features){
+                return modelPredict(features[0]).then(function(classification){
+                  // console.log(classification)
+                  // console.log(labelToText(classification))
+                  return classification
+                })   
+              })
             }
             else{
               return -1
             }
-
           }, function(err) {
             console.error(err)
-            output.innerHTML = "<p>Can't complete search! Try <a href='/'>logging in</a> again.</p>"
+            classifyResult.innerHTML = "<p>Can't complete search! Try <a href='/'>logging in</a> again.</p>"
         })
     }
+    function classifySongId(id) {
+      return getFeatures([id]).then(function(features){
+       return modelPredict(features[0]).then(function(classification){
+          return classification
+            })   
+        }, function(err) {
+          console.error(err)
+      })
+  }
   function getFeatures(songIds) {
-        output = []
         return spotify.getAudioFeaturesForTracks(songIds)
           .then(function(data){
+            output = []
             for (var i = 0; i < data['audio_features'].length; i++) {
               x = data['audio_features'][i]
               params = [x['acousticness'], x['danceability'], x['energy'], x['key'], x['liveness'], x['loudness'], x['mode'], x['speechiness'],x['tempo'], x['valence']]
@@ -95,7 +206,7 @@
   function modelPredict(features) {
       const predict = async function(features){
       const model = await tf.loadModel('/model/model.json')
-      console.log(features)
+      // console.log(features)
       const x = tf.tensor2d([features])
       const prediction = await model.predict(x).data()
       output = prediction.indexOf(Math.max(...prediction))
