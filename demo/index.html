@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8"/>
+    <title>DLPlaylists Demo</title>
+</head>
+<body>
+<div id="login">
+<a href="https://accounts.spotify.com/authorize?client_id=a78c5b6b45f540c2b114d3502fac28f1&redirect_uri=http://localhost:8000/&scope=playlist-modify-private%20playlist-modify-public&response_type=token&state=898">login to spotify</a></div> <br>
+<div id="classify">
+<form id="classify_form">
+    <label for="song">Classify song: </label>
+    <input type="text" id="song" name="song"
+           placeholder="song artist"
+           size="30">
+      <button>Classify</button>
+</form>
+<div id="classify_result">
+    
+</div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@0.10.0"> </script>
+<script type="text/javascript" src="spotify-web-api.js"></script>
+<script>
+    var token
+    var spotify
+    if(window.location.hash){
+        token = window.location.hash.split("&")[0].split("=")[1]
+        document.getElementById("login").innerHTML = "<p>Logged in!</p>"
+        spotify = new SpotifyWebApi()
+        spotify.setAccessToken(token)
+    }
+    else{
+        console.log("no hash")
+    }
+    if(window.location.search){
+        query = window.location.search.split("&")
+        for (var i = 0; i < query.length; i++) {
+            queryType = query[i].split("=")[0].slice(1)
+            queryValue = query[i].split("=")[1].replace(/\+/g, " ")
+            if (queryType == "song") {
+                var output = document.getElementById("classify_result")
+                console.log("searching song", queryValue)
+                classifySong(queryValue).then(function(result){
+                  if(result == -1){
+                    output.innerHTML = "<p>Can't find song!</p>"
+                  }
+                  else{
+                    output.innerHTML = "<p>This song is " + labelToText(result) + ".</p>"
+                  }
+                })
+            }
+        }
+    }
+    function classifySong(song) {
+        var output = document.getElementById("classify_result")
+        spotify.searchTracks(song)
+          .then(function(data) {
+            console.log('Search results:', data)
+            results = data['tracks']['items']
+            if (results) {
+                songId = results[0]['id']
+                getFeatures([songId]).then(function(features){
+                  modelPredict(features[0]).then(function(classification){
+                    console.log(classification)
+                    console.log(labelToText(classification))
+                    return classification
+                  })   
+                }
+                  )
+            }
+            else{
+              return -1
+            }
+
+          }, function(err) {
+            console.error(err)
+            output.innerHTML = "<p>Can't complete search! Try <a href='/'>logging in</a> again.</p>"
+        })
+    }
+  function getFeatures(songIds) {
+        output = []
+        return spotify.getAudioFeaturesForTracks(songIds)
+          .then(function(data){
+            for (var i = 0; i < data['audio_features'].length; i++) {
+              x = data['audio_features'][i]
+              params = [x['acousticness'], x['danceability'], x['energy'], x['key'], x['liveness'], x['loudness'], x['mode'], x['speechiness'],x['tempo'], x['valence']]
+              output.push(params)
+            }
+            return output
+          }, function(err){
+            console.error(err)
+          })
+    }
+  function modelPredict(features) {
+      const predict = async function(features){
+      const model = await tf.loadModel('/model/model.json')
+      console.log(features)
+      const x = tf.tensor2d([features])
+      const prediction = await model.predict(x).data()
+      output = prediction.indexOf(Math.max(...prediction))
+      return output
+    }
+    return predict(features)
+  }
+  function labelToText(label) {
+    const moods = ["chill and happy", "chill and sad", "hype and happy", "hype and sad"]
+    output = moods[label]
+    return output
+  }
+</script>
+</body>
+</html>
