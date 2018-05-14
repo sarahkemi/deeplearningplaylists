@@ -20,7 +20,6 @@ l_ids = set(labelled.keys())
 
 ids = list(l_ids - prev_ids)
 
-
 features = []
 
 if ids:
@@ -28,11 +27,15 @@ if ids:
     while len(features) < len(ids):
         start = batch * 50
         end = len(ids) if ((batch + 1) * 50 > len(ids)) else ((batch + 1) * 50)
-        features.extend(sp.audio_features(ids[start:end]))
+        results = sp.audio_features(ids[start:end])
+        for result in results:
+            if result:
+                features.append(result)
+        # features.extend(sp.audio_features(ids[start:end]))
         print("batch: ", batch)
         batch += 1
 
-    data = features.extend(prev_pulled) if prev_pulled else features
+    data = features + prev_pulled if prev_pulled else features
     with open('features', 'w') as outfile:
         json.dump(data, outfile)
         print('done!')

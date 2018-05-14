@@ -1,40 +1,74 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="utf-8"/>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <title>DLPlaylists Demo</title>
+    <style>
+    .result {
+      padding-top:30px;
+    }
+    .card {
+      margin: 0 auto;
+      margin-bottom: 20px;
+      width: 60%;
+    }
+    .playlist {
+      width: 80%;
+      height: 400px;
+    }
+    </style>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.1/css/bootstrap.min.css" integrity="sha384-WskhaSGFgHYWDcbwN70/dfYBj47jz9qbsMId/iRN3ewGhXQFZCSftd1LZCfmhktB" crossorigin="anonymous">
 </head>
 <body>
+<div class="container">
 <div id="login">
 <a href="https://accounts.spotify.com/authorize?client_id=a78c5b6b45f540c2b114d3502fac28f1&redirect_uri=http://localhost:8000/&scope=playlist-modify-private%20playlist-modify-public&response_type=token&state=898">login to spotify</a></div> <br>
-<div id="classify">
+<div id="classify" class="card">
+<div class="card-body">
 <form id="classify_form">
-    <label for="song">Classify song: </label>
+    <div class="form-group">
+    <label for="song"><b>Classify song: </b></label>
     <input type="text" id="song" name="song"
+          class="form-control"
            placeholder="song artist"
            size="30">
-      <button>Classify</button>
+    </div>
+      <button type="button" class="btn btn-primary">Classify</button>
 </form>
-<div id="classify_result" style="max-height:100px;">
+<div id="classify_result" class="result">
 </div>
 </div>
-<div id="creation">
+</div>
+<div id="creation" class="card">
+<div class="card-body">
 <form id="creation_form">
+    <div class="form-group">
+    <label><b>Playlist generation:</b></label> <br>
     <label for="artists">I want songs from artists like </label>
     <input type="text" id="artists" name="artists"
            placeholder="artist, artist, artist"
+           class="form-control"
            size="30">
+    </div>
+    <div class="form-group">
     <label for="mood">that are </label>
-    <select name="mood">
+    <select name="mood" class="form-control">
       <option value="0">chill and happy</option>
       <option value="1">chill and sad</option>
       <option value="2">hype and happy</option>
       <option value="3">hype and sad</option>
     </select>
-    <button>Generate</button>
+    </div>
+    <button type="button" class="btn btn-primary">Generate</button>
 </form>
-<div id="playlist_embed"style="padding-top:30px;"></div>
+<div id="playlist_embed" class="result text-center"></div>
 </div>
+</div>
+</div>
+<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.1/js/bootstrap.min.js" integrity="sha384-smHYKdLADwkXOn1EmN1qk/HfnUcbVRZyYmZ4qpPea6sjB/pTJ0euyQp0Mk8ck+5T" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@0.10.0"> </script>
 <script type="text/javascript" src="spotify-web-api.js"></script>
 <script>
@@ -90,7 +124,7 @@
             var playlistId = data['id']
             return spotify.addTracksToPlaylist(userId,playlistId, songs).then(function(data){
               console.log(data)
-              return embed = "<iframe src='https://embed.spotify.com/?uri=spotify%3Auser%3A"+ userId +"%3Aplaylist%3A" + playlistId + "' width='300' height='380' frameborder='0' allowtransparency='true'></iframe>"
+              return embed = "<iframe src='https://embed.spotify.com/?uri=spotify%3Auser%3A"+ userId +"%3Aplaylist%3A" + playlistId + "' class='playlist' frameborder='0' allowtransparency='true'></iframe>"
             },function(err){
               console.log(err)
             })
